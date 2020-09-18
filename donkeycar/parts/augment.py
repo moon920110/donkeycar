@@ -75,11 +75,11 @@ def augment_pil_image(img, shadow_images=None, do_warp_persp=False):
         augmented image
     """
     # change the coloration, sharpness, and composite a shadow
-    factor = random.uniform(0.5, 2.0)
+    factor = random.uniform(0.2, 2.0)
     img = ImageEnhance.Brightness(img).enhance(factor)
-    factor = random.uniform(0.5, 1.0)
+    factor = random.uniform(0.2, 2.0)
     img = ImageEnhance.Contrast(img).enhance(factor)
-    factor = random.uniform(0.5, 1.5)
+    factor = random.uniform(0.0, 2.0)
     img = ImageEnhance.Sharpness(img).enhance(factor)
     factor = random.uniform(0.0, 2.0)
     img = ImageEnhance.Color(img).enhance(factor)

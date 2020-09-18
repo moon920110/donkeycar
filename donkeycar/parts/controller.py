@@ -690,6 +690,7 @@ class JoystickController(object):
         self.angle = 0.0
         self.throttle = 0.0
         self.mode = 'user'
+        self.train_state = 0
         self.poll_delay = poll_delay
         self.running = True
         self.last_throttle_axis_val = 0
@@ -950,8 +951,17 @@ class JoystickController(object):
         self.chaos_monkey_steering = None
 
 
-    def run_threaded(self, img_arr=None):
+    def run_threaded(self, img_arr=None, train_trigger=False):
         self.img_arr = img_arr
+
+        train_state = self.train_state
+        if 1 < self.train_state < 4:
+            self.train_state = 4
+        elif self.train_state == 4:
+            self.train_state = 0
+
+        if train_trigger:
+            train_state = 4
 
         '''
         process E-Stop state machine
@@ -959,30 +969,30 @@ class JoystickController(object):
         if self.estop_state > self.ES_IDLE:
             if self.estop_state == self.ES_START:
                 self.estop_state = self.ES_THROTTLE_NEG_ONE
-                return 0.0, -1.0 * self.throttle_scale, self.mode, False
+                return 0.0, -1.0 * self.throttle_scale, self.mode, False, train_state
             elif self.estop_state == self.ES_THROTTLE_NEG_ONE:
                 self.estop_state = self.ES_THROTTLE_POS_ONE
-                return 0.0, 0.01, self.mode, False
+                return 0.0, 0.01, self.mode, False, train_state
             elif self.estop_state == self.ES_THROTTLE_POS_ONE:
                 self.estop_state = self.ES_THROTTLE_NEG_TWO
                 self.throttle = -1.0 * self.throttle_scale
-                return 0.0, self.throttle, self.mode, False
+                return 0.0, self.throttle, self.mode, False, train_state
             elif self.estop_state == self.ES_THROTTLE_NEG_TWO:
                 self.throttle += 0.05
                 if self.throttle >= 0.0:
                     self.throttle = 0.0
                     self.estop_state = self.ES_IDLE
-                return 0.0, self.throttle, self.mode, False
+                return 0.0, self.throttle, self.mode, False, train_state
 
         if self.chaos_monkey_steering is not None:
-            return self.chaos_monkey_steering, self.throttle, self.mode, False
+            return self.chaos_monkey_steering, self.throttle, self.mode, False, train_state
 
-        return self.angle, self.throttle, self.mode, self.recording
+        return self.angle, self.throttle, self.mode, self.recording, train_state
 
 
     def run(self, img_arr=None):
         raise Exception("We expect for this part to be run with the threaded=True argument.")
-        return None, None, None, None
+        return None, None, None, None, None
 
 
     def shutdown(self):

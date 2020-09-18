@@ -456,7 +456,7 @@ def get_model_by_type(model_type, cfg):
     '''
     from donkeycar.parts.keras import KerasRNN_LSTM, KerasBehavioral, \
         KerasCategorical, KerasIMU, KerasLinear, Keras3D_CNN, \
-        KerasLocalizer, KerasLatent
+        KerasLocalizer, KerasLatent, KerasIL
     from donkeycar.parts.tflite import TFLitePilot
 
     if model_type is None:
@@ -495,6 +495,8 @@ def get_model_by_type(model_type, cfg):
     elif model_type == "fastai":
         from donkeycar.parts.fastai import FastAiPilot
         kl = FastAiPilot()
+    elif model_type == 'il':
+        kl = KerasIL(input_shape=input_shape)
     else:
         raise Exception("unknown model type: %s" % model_type)
 

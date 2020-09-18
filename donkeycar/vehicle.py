@@ -67,7 +67,7 @@ class Vehicle:
         self.profiler = PartProfiler()
 
     def add(self, part, inputs=[], outputs=[],
-            threaded=False, run_condition=None):
+            threaded=False, run_condition=None, index=-1):
         """
         Method to add a part to the vehicle drive loop.
 
@@ -101,7 +101,10 @@ class Vehicle:
             t.daemon = True
             entry['thread'] = t
 
-        self.parts.append(entry)
+        if index == -1:
+            self.parts.append(entry)
+        else:
+            self.parts.insert(index, entry)
         self.profiler.profile_part(part)
 
     def remove(self, part):

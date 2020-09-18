@@ -145,6 +145,26 @@ class KerasCategorical(KerasPilot):
         return angle_unbinned, throttle
     
     
+class KerasIL(KerasPilot):
+    '''
+    Pretrain network before RL using IL
+    '''
+    def __init__(self, num_outputs=2, input_shape=(120, 160, 3), *args, **kwargs):
+        super(KerasIL, self).__init__(*args, **kwargs)
+        self.model = default_il(num_outputs, input_shape)
+
+        self.compile()
+
+    def compile(self):
+        self.model.compile(optimizer=self.optimizer, loss='mse')
+
+    def run(self, img_arr, speed):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        speed = speed.reshae((1, 1))
+        outputs = self.model.predict([img_arr, speed])
+
+        return outputs[0], outputs[0]
+
     
 class KerasLinear(KerasPilot):
     '''
@@ -311,6 +331,42 @@ def default_categorical(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     throttle_out = Dense(20, activation='softmax', name='throttle_out')(x)      # Reduce to 1 number, Positive number only
     
     model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
+    return model
+
+
+def default_il(num_outputs, input_shape=(120, 160, 3)):
+    from tensorflow.python.keras.layers import Concatenate
+
+    # img perception
+    img_in = Input(shape=input_shape, name='img_in')
+    x = Convolution2D(24, (5,5), strides=(2,2), activation='relu', name="conv2d_1")(img_in)
+    x = Dropout(0.5)(x)
+    x = Convolution2D(32, (5,5), strides=(2,2), activation='relu', name="conv2d_2")(x)
+    x = Dropout(0.5)(x)
+    x = Convolution2D(64, (5,5), strides=(2,2), activation='relu', name="conv2d_3")(x)
+    x = Dropout(0.5)(x)
+    x = Convolution2D(64, (3,3), strides=(2,2), activation='relu', name="conv2d_4")(x)
+    x = Dropout(0.5)(x)
+    x = Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_5")(x)
+    x = Dropout(0.5)(x)
+    x = Flatten(name='flattened')(x)
+
+    s_in = Input(shape=(1,), name='speed')
+    s = Dense(64)(s_in)
+    s = Dropout(0.5)(s)
+    s = Activation('relu')(s)
+    s = Dense(64)(s)
+    s = Dropout(0.5)(s)
+    s = Activation('relu')(s)
+
+    o = Concatenate(axis=1)([x, s])
+    o = Dense(64)(o)
+    o = Dropout(0.5)(o)
+    o = Activation('relu')(o)
+    o = Dense(num_outputs)(o)
+
+    model = Model(inputs=[img_in, s_in], outputs=o)
+
     return model
 
 
