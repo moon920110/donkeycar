@@ -160,10 +160,10 @@ class KerasIL(KerasPilot):
 
     def run(self, img_arr, speed):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        speed = speed.reshae((1, 1))
+        speed = np.reshape(np.array(speed), (1, 1))
         outputs = self.model.predict([img_arr, speed])
 
-        return outputs[0], outputs[0]
+        return outputs[0][0], outputs[0][1]
 
     
 class KerasLinear(KerasPilot):

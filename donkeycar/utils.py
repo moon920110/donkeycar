@@ -458,6 +458,7 @@ def get_model_by_type(model_type, cfg):
         KerasCategorical, KerasIMU, KerasLinear, Keras3D_CNN, \
         KerasLocalizer, KerasLatent, KerasIL
     from donkeycar.parts.tflite import TFLitePilot
+    from donkeycar.parts.torch import TorchIL
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
@@ -497,6 +498,8 @@ def get_model_by_type(model_type, cfg):
         kl = FastAiPilot()
     elif model_type == 'il':
         kl = KerasIL(input_shape=input_shape)
+    elif model_type == 'torch_il':
+        kl = TorchIL()
     else:
         raise Exception("unknown model type: %s" % model_type)
 
