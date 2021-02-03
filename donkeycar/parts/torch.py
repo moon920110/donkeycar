@@ -40,7 +40,7 @@ class TorchPilot(object):
     '''
     Base class for Torch models that will provide steering and throttle to guide a car.
     '''
-    def __init__(self):
+    def __init__(self, height=120, width=160, device='cpu'):
         self.model = None
         self.optimizer = None
         self.best_state_dict = None
@@ -77,8 +77,8 @@ class TorchPilot(object):
                     self.model.train()
                     for data in loader:
                         train_step += 1
-                        img = data['img'].float()
-                        speed = data['speed'].float()
+                        img = data['img'].float().to(self.device)
+                        speed = data['speed'].float().to(self.device)
                         target = data['out']  # [steering, throttle]
 
                         out = self.model(img, speed)
@@ -87,9 +87,13 @@ class TorchPilot(object):
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
-                        losses += loss.detach()                        
+                        if self.device == 'cuda':
+                            loss = loss.detach().cpu()
+                        else:
+                            loss = loss.detach()
+                        losses += loss
 
-                        loader.set_postfix(train_loss=loss.detach())
+                        loader.set_postfix(train_loss=loss)
 
                 with tqdm(val_loader) as loader:
                     self.model.eval()
@@ -97,16 +101,20 @@ class TorchPilot(object):
                     val_losses = 0
                     for data in loader:
                         val_step += 1
-                        img = data['img'].float()
-                        speed = data['speed'].float()
+                        img = data['img'].float().to(self.device)
+                        speed = data['speed'].float().to(self.device)
                         target = data['out']  # [steering, throttle]
 
                         out = self.model(img, speed)
                         loss = criterion(out, target)
 
-                        val_losses += loss.detach()
+                        if self.device == 'cude':
+                            loss = loss.detach().cpu()
+                        else:
+                            loss = loss.detach()
+                        val_losses += loss
 
-                        loader.set_postfix(val_loss=loss.detach())
+                        loader.set_postfix(val_loss=loss)
                     val_losses /= val_step
                     if val_losses < 0.1:
                         if val_losses < min_val_loss:
@@ -130,13 +138,14 @@ class TorchIL(TorchPilot):
     '''
     Pretrain network before RL using IL
     '''
-    def __init__(self, height=120, width=160, *args, **kwargs):
+    def __init__(self, height=120, width=160, device='cpu', *args, **kwargs):
         super(TorchIL, self).__init__(*args, **kwargs)
-        self.model = TorchDriver()
+        self.model = TorchDriver().to(device)
         self.transforms = transforms.Compose([
             transforms.Resize((height, width)),
             transforms.ToTensor(),
             ])
+        self.device = device
 
     def run(self, img_arr, speed):
         self.model.eval()
